@@ -12,8 +12,8 @@ interface BallPositionProps {
 
 let positions: BallPositionProps = {
   x: 0,
-  y: 4,
-  z: 4
+  y: 0,
+  z: 0
 }
 
 const FallingSphere: React.FC = () => {
@@ -90,10 +90,8 @@ const App: React.FC = () => {
     const distanceXY = Math.sqrt(x ** 2 + y ** 2);
   
     // Ajustar para considerar o plano 2D XZ (após rotação em torno de Z)
-    // Projeção 2D da distância
     const adjustedX = distanceXY;
-    // Manter z sem ajuste adicional
-    const adjustedZ = z; 
+    const adjustedZ = z;
   
     // Cálculo de D para verificar se a posição é alcançável
     const D = (adjustedX ** 2 + adjustedZ ** 2 - L1 ** 2 - L2 ** 2) / (2 * L1 * L2);
@@ -108,25 +106,29 @@ const App: React.FC = () => {
       };
     }
   
-    // Cálculo dos ângulos das juntas usando cinemática inversa
-    // Ângulo entre L1 e L2
-    const joint3Rotation = Math.acos(D); 
-    const joint2Rotation = Math.atan2(adjustedZ, adjustedX) - 
-                           Math.atan2(
-                             L2 * Math.sin(joint3Rotation), 
-                             L1 + L2 * Math.cos(joint3Rotation)
-                           );
+    // Calcular o ângulo do cotovelo usando acos
+    const joint3Rotation = Math.acos(D);
+  
+    // Cálculo do ângulo para alinhar o primeiro elo com a posição ajustada
+    let joint2Rotation = Math.atan2(adjustedZ, adjustedX) - 
+                         Math.atan2(
+                           L2 * Math.sin(joint3Rotation), 
+                           L1 + L2 * Math.cos(joint3Rotation)
+                         );
+  
+    // Garantir que joint3Rotation esteja 
+    // no intervalo desejado (opcionalmente ajustar sinal)
+    joint2Rotation = joint2Rotation >= 0 
+      ? joint2Rotation : joint2Rotation + 2 * Math.PI;
   
     // Retornar as rotações calculadas
     return {
-      // Rotação da base em torno do eixo Y
-      joint1Rotation: joint1Rotation,
-      // Rotação do primeiro elo
-      joint2Rotation: joint2Rotation,
-      // Rotação do segundo elo
-      joint3Rotation: joint3Rotation
+      joint1Rotation: joint1Rotation, // Rotação da base em torno do eixo Z
+      joint2Rotation: joint2Rotation, // Rotação do primeiro elo
+      joint3Rotation: joint3Rotation  // Rotação do segundo elo
     };
   };
+  
   
 
   const doo = () => {
