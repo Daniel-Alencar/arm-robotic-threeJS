@@ -4,6 +4,18 @@ import { OrbitControls } from "@react-three/drei";
 import * as CANNON from "cannon-es";
 import { RoboticArm } from "./components/RoboticArm";
 
+interface BallPositionProps {
+  x: number,
+  y: number,
+  z: number
+}
+
+let positions: BallPositionProps = {
+  x: 0,
+  y: 4,
+  z: 4
+}
+
 const FallingSphere: React.FC = () => {
   const sphereRef = useRef<THREE.Mesh>(null);
   const sphereBodyRef = useRef<CANNON.Body>(new CANNON.Body({ 
@@ -26,7 +38,9 @@ const FallingSphere: React.FC = () => {
 
     // Adicionando o corpo da esfera
     const sphereBody = sphereBodyRef.current;
-    sphereBody.position.set(1, 5, 0);
+    sphereBody.position.set(
+      positions.x, positions.y, positions.z
+    );
     world.addBody(sphereBody);
   }, []);
 
@@ -51,11 +65,7 @@ const FallingSphere: React.FC = () => {
   );
 };
 
-interface BallPositionProps {
-  x: number,
-  y: number,
-  z: number
-}
+
 
 const App: React.FC = () => {
   const [joint1Rotation, setJoint1Rotation] = useState(0);
@@ -63,37 +73,32 @@ const App: React.FC = () => {
   const [joint3Rotation, setJoint3Rotation] = useState(0);
   const [gripperOpen, setGripperOpen] = useState(false);
 
-  const makeMovement = (ballPosition: BallPositionProps) => {
-    // Parâmetros do braço robótico (comprimentos dos elos)
-
-    // comprimento do primeiro elo em cm
-    const L1 = 1;
-    // comprimento do segundo elo em cm 
-    const L2 = 1;
+  const makeMovement = (ballPosition) => {
+    // Comprimentos dos elos em cm
+    const L1 = 5;
+    const L2 = 5;
   
     // Coordenadas da bolinha
     const x = ballPosition.x;
     const y = ballPosition.y;
     const z = ballPosition.z;
   
-    // Calcular a rotação da base para alinhar o braço 
-    // com a posição da bolinha (ângulo em torno do eixo Z)
-    // em radianos
-    const joint1Rotation = Math.atan2(y, x); 
+    // Calcular a rotação da base para alinhar com a posição da bolinha
+    const joint1Rotation = Math.atan2(y, x);
   
-    // Ajuste das coordenadas para cálculo 2D 
-    // (considerando projeção no plano XZ após rotação)
-
-    // Distância projetada no plano XZ
-    const distanceXZ = Math.sqrt(x ** 2 + y ** 2);
-    // Projeção em X após rotação
-    const newX = distanceXZ; 
-    const newZ = z;
+    // Projeção 2D da distância no plano XY
+    const distanceXY = Math.sqrt(x ** 2 + y ** 2);
   
-    // Cálculo do valor de D para verificar se a posição é alcançável
-    const D = (newX ** 2 + newZ ** 2 - L1 ** 2 - L2 ** 2) / (2 * L1 * L2);
+    // Ajustar para considerar o plano 2D XZ (após rotação em torno de Z)
+    // Projeção 2D da distância
+    const adjustedX = distanceXY;
+    // Manter z sem ajuste adicional
+    const adjustedZ = z; 
   
-    // Verificação para garantir que a posição é alcançável
+    // Cálculo de D para verificar se a posição é alcançável
+    const D = (adjustedX ** 2 + adjustedZ ** 2 - L1 ** 2 - L2 ** 2) / (2 * L1 * L2);
+  
+    // Verificação de limite para D
     if (D < -1 || D > 1) {
       console.error("Posição fora do alcance do braço robótico");
       return {
@@ -104,28 +109,32 @@ const App: React.FC = () => {
     }
   
     // Cálculo dos ângulos das juntas usando cinemática inversa
-    // θ3 em radianos
-    const joint3Rotation = Math.acos(D);
-    const joint2Rotation = 
-      Math.atan2(newZ, newX) -
-      Math.acos(
-        (newX ** 2 + newZ ** 2 + L1 ** 2 - L2 ** 2) / 
-        (2 * L1 * Math.sqrt(newX ** 2 + newZ ** 2))
-      );
+    // Ângulo entre L1 e L2
+    const joint3Rotation = Math.acos(D); 
+    const joint2Rotation = Math.atan2(adjustedZ, adjustedX) - 
+                           Math.atan2(
+                             L2 * Math.sin(joint3Rotation), 
+                             L1 + L2 * Math.cos(joint3Rotation)
+                           );
   
-    // Retorno dos valores calculados
+    // Retornar as rotações calculadas
     return {
-      joint1Rotation,
-      joint2Rotation,
-      // Ajuste do sinal, se necessário
-      joint3Rotation: -joint3Rotation 
+      // Rotação da base em torno do eixo Y
+      joint1Rotation: joint1Rotation,
+      // Rotação do primeiro elo
+      joint2Rotation: joint2Rotation,
+      // Rotação do segundo elo
+      joint3Rotation: joint3Rotation
     };
   };
+  
 
   const doo = () => {
     // Exemplo de posição da bolinha
-    const ballPosition = { x: 1, y: 0, z: 0 };
-    const { joint1Rotation, joint2Rotation, joint3Rotation } = makeMovement(ballPosition);
+    const ballPosition = positions;
+    const { 
+      joint1Rotation, joint2Rotation, joint3Rotation 
+    } = makeMovement(ballPosition);
     
     // Atualizando os estados das juntas
     setJoint1Rotation(joint1Rotation);
@@ -161,6 +170,12 @@ const App: React.FC = () => {
           joint3Rotation={joint3Rotation}
           gripperOpen={gripperOpen}
         />
+
+        <mesh position={[positions.x, positions.y, positions.z]}>
+          <sphereGeometry args={[0.1, 32, 32]} />
+          <meshStandardMaterial color="red" />
+        </mesh> 
+       
       </Canvas>
 
       <div style={{ position: "absolute", top: 10, left: 10 }}>
@@ -187,8 +202,8 @@ const App: React.FC = () => {
         <label>Segundo Elo (Rotação X):</label>
         <input
           type="range"
-          min={-Math.PI / 2}
-          max={+Math.PI / 2}
+          min={-Math.PI}
+          max={+Math.PI}
           step="0.001"
           value={joint3Rotation}
           onChange={(e) => setJoint3Rotation(Number(e.target.value))}

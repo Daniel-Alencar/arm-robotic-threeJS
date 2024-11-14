@@ -6,7 +6,7 @@ import { OrbitControls } from "@react-three/drei";
 const ArmSegment = React.forwardRef((props, ref) => {
   return (
     <mesh ref={ref} {...props}>
-      <boxGeometry args={[0.3, 1.0, 0.3]} />
+      <boxGeometry args={[0.3, 5.0, 0.3]} />
       <meshStandardMaterial color={"orange"} />
     </mesh>
   );
@@ -48,7 +48,10 @@ const Gripper = React.forwardRef(({ open }, ref) => {
 
 export const RoboticArm = (
   { 
-    joint1Rotation, joint2Rotation, joint3Rotation, joint4Rotation,
+    joint1Rotation, 
+    joint2Rotation, 
+    joint3Rotation, 
+    joint4Rotation,
     gripperOpen 
   }
 ) => {
@@ -82,23 +85,25 @@ export const RoboticArm = (
 
         {/* Primeiro segmento do braço */}
         <group position={[0, 0, 0]} rotation={[joint2Rotation, 0, 0]}>
-          <ArmSegment position={[0, 0.5, 0]} />
+          <ArmSegment position={[0, 2.5, 0]} />
 
           {/* Segundo segmento do braço */}
-          <group position={[0, 1, 0]} rotation={[joint3Rotation, 0, 0]}>
-            <ArmSegment position={[0, 0.5, 0]} />
+          <group position={[0, 5, 0]} rotation={[joint3Rotation, 0, 0]}>
+            <ArmSegment position={[0, 2.5, 0]} />
 
             {/* Garra */}
-            <group 
-              position={[0, 1, -0.7]} 
-              rotation={[Math.PI / 2, 0, 0]}
-            >
-              <Gripper 
-                ref={gripperRef} 
-                open={gripperOpen} 
-              />
-            </group>
-          </group>
+            {/* 
+              <group 
+                position={[0, 1, -0.7]} 
+                rotation={[Math.PI / 2, 0, 0]}
+              >
+                <Gripper 
+                  ref={gripperRef} 
+                  open={gripperOpen} 
+                />
+              </group>
+            */}
+          </group> 
         </group>
       </mesh>
     </>
